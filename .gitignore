@@ -1,0 +1,10 @@
+# VS Code config
+.vscode/
+
+
+# Compiled Python bytecode
+__pycache__/
+*.py[cod]
+
+# Python virtual environment
+venv/
