@@ -1,6 +1,6 @@
-from dataclasses import dataclass
 from enum import Enum
-from itertools import cycle
+
+import utils.io
 
 
 class Pick(Enum):
@@ -39,23 +39,21 @@ def score_round_pt2(their_pick: Pick, outcome: Outcome):
 
 
 if __name__ == "__main__":
-    with open("input/day2") as f:
-        data = f.read()
-        rps_rounds = data.split("\n")
-        total_score_pt1 = 0
-        total_score_pt2 = 0
-        for round in rps_rounds:
-            inputs = round.split(" ")
-            their_pick = their_pick_map[inputs[0]]
+    rps_rounds = utils.io.read_file_lines("input/day2")
+    total_score_pt1 = 0
+    total_score_pt2 = 0
+    for round in rps_rounds:
+        inputs = round.split(" ")
+        their_pick = their_pick_map[inputs[0]]
 
-            my_pick_pt1 = my_pick_map_pt1[inputs[1]]
-            total_score_pt1 += score_round_pt1(their_pick, my_pick_pt1)
+        my_pick_pt1 = my_pick_map_pt1[inputs[1]]
+        total_score_pt1 += score_round_pt1(their_pick, my_pick_pt1)
 
-            outcome_pt2 = outcome_map_pt2[inputs[1]]
-            total_score_pt2 += score_round_pt2(their_pick, outcome_pt2)
+        outcome_pt2 = outcome_map_pt2[inputs[1]]
+        total_score_pt2 += score_round_pt2(their_pick, outcome_pt2)
 
-        print("Part I")
-        print(total_score_pt1)
+    print("Part I")
+    print(total_score_pt1)
 
-        print("Part II")
-        print(total_score_pt2)
+    print("Part II")
+    print(total_score_pt2)

@@ -13,7 +13,9 @@ class CraneModel(Enum):
     CrateMover_9001 = 1
 
 
-def parse_input(data):
+def parse_input(input_file: str):
+    data = utils.io.read_file_lines(input_file)
+
     stacks = []
     operations = []
 
@@ -38,8 +40,6 @@ def parse_input(data):
                 if not chunk[0:3].isspace():
                     stack.appendleft(chunk[1])
 
-    print(stacks)
-    print(operations)
     return stacks, operations
 
 
@@ -61,12 +61,11 @@ def apply_operations(
 
 
 def top_crate_in_stacks(stacks: List[deque]) -> str:
-    return "".join([s.pop() for s in stacks])
+    return "".join([s[-1] for s in stacks])
 
 
 if __name__ == "__main__":
-    data = utils.io.read_file_lines("input/day5")
-    stacks, operations = parse_input(data)
+    stacks, operations = parse_input("input/day5")
     stacks_pt1 = apply_operations(stacks, operations, CraneModel.CrateMover_9000)
 
     print("Part I")

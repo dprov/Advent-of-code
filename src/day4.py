@@ -1,31 +1,49 @@
 import re
+from typing import Callable, List
 
 from interval import Interval
 
-pair_regex = "(\d+)\-(\d+)\,(\d+)\-(\d+)"
+import utils.io
+
+PAIR_REGEX = "(\d+)\-(\d+)\,(\d+)\-(\d+)"
+
+
+def parse_input_to_intervals(input_file: str):
+    pairs = utils.io.read_file_lines(input_file)
+
+    matches = [re.match(PAIR_REGEX, pair) for pair in pairs]
+    first_intervals = [Interval(int(m.group(1)), int(m.group(2))) for m in matches]
+    second_intervals = [Interval(int(m.group(3)), int(m.group(4))) for m in matches]
+    return first_intervals, second_intervals
+
+
+def check_intervals(
+    intervals_1: List[Interval],
+    intervals_2: List[Interval],
+    predicate: Callable[[Interval, Interval], bool],
+) -> List[bool]:
+    return [predicate(f, s) for (f, s) in zip(intervals_1, intervals_2)]
+
+
+def count_full_overlapping_pairs(intervals_1: List[Interval], intervals_2: List[Interval]) -> int:
+    have_full_overlap = check_intervals(intervals_1, intervals_2, lambda x, y: (x in y) or (y in x))
+    return sum(have_full_overlap)
+
+
+def count_partial_overlapping_pairs(
+    intervals_1: List[Interval], intervals_2: List[Interval]
+) -> int:
+    have_partial_overlap = check_intervals(intervals_1, intervals_2, lambda x, y: x.overlaps(y))
+    return sum(have_partial_overlap)
+
 
 if __name__ == "__main__":
-    with open("input/day4") as f:
-        data = f.read()
-        pairs = data.split("\n")
+    first_elf_intervals, second_elf_intervals = parse_input_to_intervals("input/day4")
 
-        matches = [re.match(pair_regex, pair) for pair in pairs]
-        first_intervals = [Interval(int(m.group(1)), int(m.group(2))) for m in matches]
-        second_intervals = [Interval(int(m.group(3)), int(m.group(4))) for m in matches]
+    print("Part I")
+    n_full_overlaps = count_full_overlapping_pairs(first_elf_intervals, second_elf_intervals)
+    print(n_full_overlaps)
 
-        pair_has_full_overlap = [
-            (f in s) or (s in f) for (f, s) in zip(first_intervals, second_intervals)
-        ]
-        n_full_overlaps = sum(pair_has_full_overlap)
-
-        pair_has_partial_overlap = [
-            f.overlaps(s) for (f, s) in zip(first_intervals, second_intervals)
-        ]
-
-        n_partial_overlaps = sum(pair_has_partial_overlap)
-
-        print("Part I")
-        print(n_full_overlaps)
-
-        print("Part II")
-        print(n_partial_overlaps)
+    print("Part II")
+    n_partial_overlaps = count_partial_overlapping_pairs(first_elf_intervals, second_elf_intervals)
+    print(n_partial_overlaps)
