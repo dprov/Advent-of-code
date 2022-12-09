@@ -11,31 +11,26 @@ import utils.io
 # Utils for applying 1D processing function along multiple directions on a 2D array
 @dataclass
 class ArrayView1D:
+    # dimension/axis along which to process
     axis: int
+    # Slice object for indexing, in order to create view into array (no copy)
+    # To be applied to input and output arrays
     s_: IndexExpression = np.s_[:, :]
 
-
-class Direction(Enum):
-    Top = ArrayView1D(axis=0)
-    Bottom = ArrayView1D(axis=0, s_=np.s_[::-1, :])
-    Left = ArrayView1D(axis=1)
-    Right = ArrayView1D(axis=1, s_=np.s_[:, ::-1])
+    def apply_func(self, func: Callable, array: np.ndarray):
+        return np.apply_along_axis(func, self.axis, array[self.s_])[self.s_]
 
 
-def apply_along_directions(
-    x: np.ndarray, func: Callable, directions: List[Direction], aggregate_func: Callable
+def apply_func_along_views(
+    func: Callable, array: np.ndarray, views: List[ArrayView1D], aggregate_func: Callable
 ):
-    if not directions:
+    if not views:
         raise ValueError("No directions to apply")
 
-    view: ArrayView1D = directions[0].value
-    result = np.apply_along_axis(func, view.axis, forest[view.s_])[view.s_]
+    result = views[0].apply_func(func, array)
 
-    for dir in directions[1:]:
-        view = dir.value
-        result = aggregate_func(
-            result, np.apply_along_axis(func, view.axis, forest[view.s_])[view.s_]
-        )
+    for view in views[1:]:
+        result = aggregate_func(result, view.apply_func(func, array))
 
     return result
 
@@ -56,7 +51,6 @@ def is_visible_1D(line_of_trees):
 
 
 def n_trees_in_view_1D(line_of_trees):
-    # Works on 1D array
     trees_in_view = np.zeros(line_of_trees.shape, dtype=int)
 
     # First tree cannot see any tree
@@ -65,8 +59,7 @@ def n_trees_in_view_1D(line_of_trees):
         trees_in_view[ind] += n_visible_per_height[tree]
 
         # Any trees smaller or equal can now only see this tree
-        if tree > 0:
-            n_visible_per_height[0 : tree + 1] = 1
+        n_visible_per_height[0 : tree + 1] = 1
 
         # Taller trees see one more tree
         if tree < 9:
@@ -76,11 +69,19 @@ def n_trees_in_view_1D(line_of_trees):
 
 
 # Functions for solving
+class Direction(Enum):
+    Top = ArrayView1D(axis=0)
+    Bottom = ArrayView1D(axis=0, s_=np.s_[::-1, :])
+    Left = ArrayView1D(axis=1)
+    Right = ArrayView1D(axis=1, s_=np.s_[:, ::-1])
+
+
 def count_trees_visible_from_outside(forest):
-    is_visible = apply_along_directions(
-        forest,
+    views = [d.value for d in [Direction.Top, Direction.Bottom, Direction.Left, Direction.Right]]
+    is_visible = apply_func_along_views(
         func=is_visible_1D,
-        directions=[Direction.Top, Direction.Bottom, Direction.Left, Direction.Right],
+        array=forest,
+        views=views,
         aggregate_func=np.add,
     )
 
@@ -88,10 +89,11 @@ def count_trees_visible_from_outside(forest):
 
 
 def max_scenic_score(forest):
-    scenic_score = apply_along_directions(
-        forest,
+    views = [d.value for d in [Direction.Top, Direction.Bottom, Direction.Left, Direction.Right]]
+    scenic_score = apply_func_along_views(
         func=n_trees_in_view_1D,
-        directions=[Direction.Top, Direction.Bottom, Direction.Left, Direction.Right],
+        array=forest,
+        views=views,
         aggregate_func=np.multiply,
     )
     return np.amax(scenic_score)
