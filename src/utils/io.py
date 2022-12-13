@@ -24,15 +24,32 @@ class ParserClass:
 
     @staticmethod
     def line_split() -> str:
-        return NotImplementedError()
+        return None
+
+    @staticmethod
+    def strip_empty_lines() -> bool:
+        return True
+
+    @staticmethod
+    def line_group_size() -> int:
+        return 1
 
 
 def parse_file_as_type(path: str, parser_class: ParserClass) -> List:
     with open(path) as f:
         data = f.read()
         data = data.split("\n")
+
+        if parser_class.strip_empty_lines():
+            data = [d for d in data if d]
+
         if parser_class.line_split() is not None:
             data = [line.split(parser_class.line_split()) for line in data]
+
+        group_size = parser_class.line_group_size()
+        if group_size > 1:
+            data = [data[i : i + group_size] for i in range(0, len(data), group_size)]
+
         data = [parser_class(d).parse() for d in data]
         return data
 
