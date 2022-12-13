@@ -1,4 +1,6 @@
 anytree==2.8.0
 interval==1.0.0
+mpmath==1.2.1
 numpy==1.23.5
 six==1.16.0
+sympy==1.11.1
