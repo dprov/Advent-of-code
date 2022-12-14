@@ -11,8 +11,8 @@ import utils
 
 
 # Utilities related to prime number factorization
-def get_prime_factors(x):
-    return set(sympy.primefactors(x, limit=19))
+def get_prime_factors(x, limit):
+    return set(sympy.primefactors(x, limit=limit))
 
 
 # From https://stackoverflow.com/a/39106237
@@ -29,16 +29,17 @@ def find_primes_up_to(n):
 
 # Classes for items in monkey game
 class FactorizedInt:
+    # Track remainder of division by primes up to max_divisor
     max_divisor: int = None
+    # Optionally keep track of the raw value
     track_value = True
-    # Idea: Track list of prime divisors + remainder for each prime
+
     def __init__(self, value: int) -> None:
         self.value = value if self.track_value else None
         prime_divisors = set(find_primes_up_to(self.max_divisor))
         self.remainders = {prime: value % prime for prime in prime_divisors}
 
     def __mul__(self, value) -> FactorizedInt:
-        # out = copy.deepcopy(self) # slow
         out = self
         if self.track_value:
             out.value *= value
@@ -47,7 +48,6 @@ class FactorizedInt:
         return out
 
     def __add__(self, value) -> FactorizedInt:
-        # out = copy.deepcopy(self)  # slow
         out = self
         if self.track_value:
             out.value += value
@@ -56,7 +56,6 @@ class FactorizedInt:
         return out
 
     def __pow__(self, value) -> FactorizedInt:
-        # out = copy.deepcopy(self)  # slow
         out = self
         if self.track_value:
             out.value = out.value**value
@@ -72,7 +71,7 @@ class FactorizedInt:
         return out
 
     def is_divisible_by(self, value) -> bool:
-        value_factors = get_prime_factors(value)
+        value_factors = get_prime_factors(value, limit=self.max_divisor)
         for factor in value_factors:
             if self.remainders[factor] > 0:
                 return False
@@ -120,7 +119,6 @@ class OperationCallback(Callback):
     def __callback_pow(self, item: FactorizedInt) -> FactorizedInt:
         return item**self.__arg
 
-    # @utils.timing.timing
     def _callback(self, item: FactorizedInt) -> FactorizedInt:
         return self.__callback_fun(item)
 
@@ -128,13 +126,15 @@ class OperationCallback(Callback):
 class TestDivisibilityCallback(Callback):
     def __init__(self, divisor: int, monkey_true: int, monkey_false: int) -> None:
         self.divisor = divisor
-        self.monkey_true = monkey_true
-        self.monkey_false = monkey_false
+        self.monkey_if_true = monkey_true
+        self.monkey_if_false = monkey_false
 
     def _callback(self, item: FactorizedInt) -> ThrownItem:
         return ThrownItem(
             item=item,
-            recipient=self.monkey_true if item.is_divisible_by(self.divisor) else self.monkey_false,
+            recipient=self.monkey_if_true
+            if item.is_divisible_by(self.divisor)
+            else self.monkey_if_false,
         )
 
 
@@ -142,7 +142,6 @@ class TestDivisibilityCallback(Callback):
 class WhenBoredCallback(Callback):
     relief_factor: int
 
-    # @utils.timing.timing
     def _callback(self, item: FactorizedInt) -> FactorizedInt:
         if self.relief_factor != 1:
             return item // self.relief_factor
