@@ -19,20 +19,26 @@ def read_file_lines(path: str, split=None, parse_as_type: Type = None) -> List[s
 class ParserClass:
     data: Union[str, List[str]]
 
-    def parse(self):
-        raise NotImplementedError()
-
-    @staticmethod
-    def line_split() -> str:
-        return None
+    # Functions to define how text input is parsed, Applied in this order.
 
     @staticmethod
     def strip_empty_lines() -> bool:
+        # Whether to remove empty lines from input before parsing
         return True
 
     @staticmethod
+    def line_split() -> str:
+        # input for str.split() applied to each line. None = no split
+        return None
+
+    @staticmethod
     def line_group_size() -> int:
+        # Aggregate lines in groups of size line_group_size()
         return 1
+
+    def parse(self):
+        # Function for parsing the group of lines
+        raise NotImplementedError()
 
 
 def parse_file_as_type(path: str, parser_class: ParserClass) -> List:
