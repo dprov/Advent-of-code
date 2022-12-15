@@ -35,24 +35,6 @@ class Position:
         return self.row >= 0 and self.row < map_size[0] and self.col >= 0 and self.col < map_size[1]
 
 
-def extract_start_end_pos(
-    topo_map: np.ndarray, start_marker="S", end_marker="E"
-) -> Tuple[Position, Position]:
-    start = np.argwhere(topo_map == start_marker).squeeze()
-    end = np.argwhere(topo_map == end_marker).squeeze()
-
-    if start.size != 2 or end.size != 2:
-        raise ValueError()
-
-    start_pos = Position(start[0], start[1])
-    end_pos = Position(end[0], end[1])
-
-    topo_map[start_pos.s_] = "a"
-    topo_map[end_pos.s_] = "z"
-
-    return (start_pos, end_pos)
-
-
 @utils.timing.timing
 def setup_graph(topo_map: np.ndarray, reversed=False) -> dijkstar.Graph:
     if reversed:
@@ -114,6 +96,26 @@ def solve_part_2(topo_map, end_pos):
     return shortest_path_length
 
 
+# Parsing utils
+def extract_start_end_pos(
+    topo_map: np.ndarray, start_marker="S", end_marker="E"
+) -> Tuple[Position, Position]:
+    start = np.argwhere(topo_map == start_marker).squeeze()
+    end = np.argwhere(topo_map == end_marker).squeeze()
+
+    if start.size != 2 or end.size != 2:
+        raise ValueError()
+
+    start_pos = Position(start[0], start[1])
+    end_pos = Position(end[0], end[1])
+
+    topo_map[start_pos.s_] = "a"
+    topo_map[end_pos.s_] = "z"
+
+    return (start_pos, end_pos)
+
+
+@utils.timing.timing
 def parse_input(path: str) -> Tuple[np.ndarray, Position, Position]:
     topo_map = utils.io.read_file_as_array(path, dtype="<U1")
 
