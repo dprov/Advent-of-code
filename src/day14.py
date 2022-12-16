@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Tuple
@@ -9,77 +8,7 @@ from typing import List, Tuple
 import numpy as np
 
 import utils
-
-
-@dataclass(frozen=True, eq=True, order=True)
-class MapPosition:
-    x: int
-    y: int
-
-    def __post_init__(self):
-        # Trick to set member despite class being frozen
-        super().__setattr__("s_", np.s_[self.y, self.x])
-
-    def __add__(self, other) -> MapPosition:
-        if isinstance(other, MapPosition):
-            return MapPosition(self.x + other.x, self.y + other.y)
-        else:
-            raise NotImplementedError()
-
-    def __sub__(self, other) -> MapPosition:
-        if isinstance(other, MapPosition):
-            return MapPosition(self.x - other.x, self.y - other.y)
-        else:
-            raise NotImplementedError()
-
-    def is_inside(self, map_size: Tuple[int, int]) -> bool:
-        return self.x >= 0 and self.x < map_size[1] and self.y >= 0 and self.y < map_size[0]
-
-
-@dataclass(frozen=True, eq=True, order=True)
-class MapLine:
-    start: MapPosition
-    end: MapPosition
-
-    def __post_init__(self):
-        sorted_x = sorted([self.start.x, self.end.x])
-        sorted_y = sorted([self.start.y, self.end.y])
-        super().__setattr__("__top_left", MapPosition(x=sorted_x[0], y=sorted_y[0]))
-        super().__setattr__("__bottom_right", MapPosition(x=sorted_x[1], y=sorted_y[1]))
-        super().__setattr__(
-            "s_",
-            np.s_[sorted_y[0] : sorted_y[1] + 1, sorted_x[0] : sorted_x[1] + 1],
-        )
-
-    def __add__(self, other) -> MapLine:
-        if isinstance(other, MapPosition):
-            return MapLine(self.start + other, self.end + other)
-        else:
-            raise NotImplementedError()
-
-    def __sub__(self, other) -> MapLine:
-        if isinstance(other, MapPosition):
-            return MapLine(self.start - other, self.end - other)
-        else:
-            raise NotImplementedError()
-
-    def extent(self) -> Tuple[MapPosition, MapPosition]:
-        return self.__getattribute__("__top_left"), self.__getattribute__("__bottom_right")
-
-
-@dataclass
-class MapStructure:
-    lines: List[MapLine] = field(default_factory=list)
-
-    def extent(self) -> Tuple[MapPosition, MapPosition]:
-        x = []
-        y = []
-        for line in self.lines:
-            top_left, bottom_right = line.extent()
-            x.extend([top_left.x, bottom_right.x])
-            y.extend([top_left.y, bottom_right.y])
-
-        return MapPosition(x=min(x), y=min(y)), MapPosition(x=max(x), y=max(y))
+from utils.map import MapExtent, MapLine, MapPosition, MapStructure
 
 
 @dataclass
@@ -96,42 +25,34 @@ class FillingCaveMap:
 
     def __post_init__(self) -> None:
         # Determine size of map in memory
-        # Make sure we include the source
-        top_lefts = [self.sand_source_pos]
-        bottom_rights = [self.sand_source_pos]
-
         # Consider normal structures
-        extents = [s.extent() for s in self.structures]
-        top_lefts.extend([e[0] for e in extents])
-        bottom_rights.extend([e[1] for e in extents])
+        self.extent: MapExtent = sum([s.extent() for s in self.structures], MapExtent())
+
+        # Make sure we include the source
+        self.extent += self.sand_source_pos.extent()
 
         # Add floor if needed
         if self.floor_depth_below_scan is not None:
             # Infinite plane, but only needs to extent laterally (floor_depth-sand_source.y) + 1
             # to either side of sand_source.x
-            floor_depth = max(bottom_rights, key=lambda p: p.y).y + self.floor_depth_below_scan
+            floor_depth = self.extent.bottom_right.y + self.floor_depth_below_scan
             delta_y = floor_depth - self.sand_source_pos.y + 1
             floor_start = MapPosition(x=self.sand_source_pos.x - delta_y, y=floor_depth)
             floor_end = MapPosition(x=self.sand_source_pos.x + delta_y, y=floor_depth)
-            floor_structure = MapStructure([MapLine(floor_start, floor_end)])
-            self.structures.append(floor_structure)
-            top_lefts.append(floor_start)
-            bottom_rights.append(floor_end)
+            floor = MapLine([floor_start, floor_end])
+            self.structures.append(MapStructure([floor]))
 
-        min_x = min(top_lefts, key=lambda p: p.x).x
-        min_y = min(top_lefts, key=lambda p: p.y).y
+            self.extent += floor
 
-        max_x = max(bottom_rights, key=lambda p: p.x).x
-        max_y = max(bottom_rights, key=lambda p: p.y).y
-
-        self.__map_top_left = MapPosition(x=min_x, y=min_y)
-        self.__map_sand_source = self.sand_source_pos - self.__map_top_left
-        self.__map = np.full((max_y - min_y + 1, max_x - min_x + 1), fill_value=".")
+        self.__map_sand_source = self.sand_source_pos - self.extent.top_left
+        self.__map_extent = self.extent - self.extent.top_left
+        self.__map = np.full((self.extent.height(), self.extent.width()), fill_value=".")
+        self.__map_extent = MapExtent.from_shape(self.__map.shape)
         self.__map[self.__map_sand_source.s_] = "+"
 
         for s in self.structures:
             for line in s.lines:
-                map_wall = line - self.__map_top_left
+                map_wall = line - self.extent.top_left
                 self.__map[map_wall.s_] = "#"
 
     def fill_with_sand(self) -> int:
@@ -161,7 +82,7 @@ class FillingCaveMap:
         down_right = pos + MapPosition(x=1, y=1)
 
         for next_pos in [down, down_left, down_right]:
-            if not next_pos.is_inside(self.__map.shape):
+            if not self.__map_extent.contains(next_pos):
                 return self.SandState.FALLING_INTO_ABYSS, None
             if self.__map[next_pos.s_] == ".":
                 return self.SandState.FALLING_DOWN, next_pos
@@ -177,7 +98,7 @@ class FillingCaveMap:
 
     # For visualization/debugging
     def __str__(self) -> str:
-        return f"top left = ({self.__map_top_left.x}, {self.__map_top_left.y})\n{self.__map}"
+        return f"top left = ({self.extent.top_left.x}, {self.extent.top_left.y})\n{self.__map}"
 
     def map(self) -> np.ndarray:
         return self.__map.copy()
@@ -194,7 +115,7 @@ class MapStructureParser(utils.io.ParserClass):
             raise ValueError("Invalid structure string")
 
         corners = [self.__parse_point(corner_str) for corner_str in self.data]
-        walls = [MapLine(c1, c2) for c1, c2 in zip(corners[:-1], corners[1:])]
+        walls = [MapLine([c1, c2]) for c1, c2 in zip(corners[:-1], corners[1:])]
         return MapStructure(lines=walls)
 
     def __parse_point(self, corner_str: str) -> MapPosition:

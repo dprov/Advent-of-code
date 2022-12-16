@@ -8,31 +8,7 @@ import dijkstar.algorithm
 import numpy as np
 
 import utils
-
-
-# Position needs to be hashable
-@dataclass(frozen=True, eq=True)
-class Position:
-    row: int
-    col: int
-
-    def __post_init__(self):
-        # Trick to set member despite class being frozen
-        super().__setattr__("s_", np.s_[self.row, self.col])
-
-    def neighbors(self, map_size: Tuple(int, int)) -> List[Position]:
-        neighbors = [
-            self + delta
-            for delta in [Position(-1, 0), Position(1, 0), Position(0, -1), Position(0, 1)]
-        ]
-        neighbors = [n for n in neighbors if n.is_inside(map_size)]
-        return neighbors
-
-    def __add__(self, other: Position) -> Position:
-        return Position(self.row + other.row, self.col + other.col)
-
-    def is_inside(self, map_size: Tuple(int, int)) -> bool:
-        return self.row >= 0 and self.row < map_size[0] and self.col >= 0 and self.col < map_size[1]
+from utils.map import MapExtent, MapLine, MapPosition, MapStructure
 
 
 @utils.timing.timing
@@ -45,8 +21,8 @@ def setup_graph(topo_map: np.ndarray, reversed=False) -> dijkstar.Graph:
     graph = dijkstar.Graph()
     for r, row in enumerate(topo_map):
         for c, node_height in enumerate(row):
-            node = Position(r, c)
-            for n in node.neighbors(map_size=topo_map.shape):
+            node = MapPosition(c, r)
+            for n in node.neighbors(MapExtent.from_shape(topo_map.shape)):
                 if is_reachable(h=node_height, h_neighbor=topo_map[n.s_]):
                     graph.add_edge(node, n, 1)
     return graph
@@ -60,7 +36,7 @@ def solve_part_1(topo_map, start_pos, end_pos):
         start_pos,
         end_pos,
         # Change to A*. For size of map, it's longer...
-        heuristic_func=lambda n1, n2, e1, e2: abs(n2.row - n1.row) + abs(n2.col - n1.col),
+        heuristic_func=lambda n1, n2, e1, e2: abs(n2.x - n1.x) + abs(n2.y - n1.y),
     )
     print(path.total_cost)
     return path.total_cost
@@ -84,7 +60,7 @@ def solve_part_2(topo_map, end_pos):
     starts = np.argwhere(topo_map == 0).squeeze()
     shortest_path_length = None
     for start in starts:
-        start_pos = Position(start[0], start[1])
+        start_pos = MapPosition(start[1], start[0])
         try:
             path = dijkstar.algorithm.extract_shortest_path_from_predecessor_list(
                 predecessors, d=start_pos
@@ -99,15 +75,15 @@ def solve_part_2(topo_map, end_pos):
 # Parsing utils
 def extract_start_end_pos(
     topo_map: np.ndarray, start_marker="S", end_marker="E"
-) -> Tuple[Position, Position]:
+) -> Tuple[MapPosition, MapPosition]:
     start = np.argwhere(topo_map == start_marker).squeeze()
     end = np.argwhere(topo_map == end_marker).squeeze()
 
     if start.size != 2 or end.size != 2:
         raise ValueError()
 
-    start_pos = Position(start[0], start[1])
-    end_pos = Position(end[0], end[1])
+    start_pos = MapPosition(start[1], start[0])
+    end_pos = MapPosition(end[1], end[0])
 
     topo_map[start_pos.s_] = "a"
     topo_map[end_pos.s_] = "z"
@@ -116,7 +92,7 @@ def extract_start_end_pos(
 
 
 @utils.timing.timing
-def parse_input(path: str) -> Tuple[np.ndarray, Position, Position]:
+def parse_input(path: str) -> Tuple[np.ndarray, MapPosition, MapPosition]:
     topo_map = utils.io.read_file_as_array(path, dtype="<U1")
 
     start_pos, end_pos = extract_start_end_pos(topo_map)
