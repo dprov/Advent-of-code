@@ -8,3 +8,6 @@ __pycache__/
 
 # Python virtual environment
 venv/
+
+# outputs
+output/
