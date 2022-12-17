@@ -45,6 +45,35 @@ class MapPosition:
         return neighbors
 
 
+@dataclass(frozen=True, eq=True, order=True)
+class ManhattanDistance:
+    distance: int = 0
+
+    @staticmethod
+    def __between_points(p1: MapPosition, p2: MapPosition) -> int:
+        return abs(p2.x - p1.x) + abs(p2.y - p1.y)
+
+    @classmethod
+    def between(cls, p1: MapPosition, p2: MapPosition) -> ManhattanDistance:
+        return ManhattanDistance(cls.__between_points(p1, p2))
+
+    def __add__(self, other) -> ManhattanDistance:
+        if isinstance(other, int):
+            return ManhattanDistance(self.distance + other)
+        elif isinstance(other, ManhattanDistance):
+            return ManhattanDistance(self.distance + other.distance)
+        else:
+            raise NotImplementedError()
+
+    def __sub__(self, other) -> ManhattanDistance:
+        if isinstance(other, int):
+            return ManhattanDistance(self.distance - other)
+        elif isinstance(other, ManhattanDistance):
+            return ManhattanDistance(self.distance - other.distance)
+        else:
+            raise NotImplementedError()
+
+
 # Hashable
 @dataclass(frozen=True, eq=True)
 class MapExtent:
@@ -127,6 +156,9 @@ class MapLine(MapExtent):
 
     def __add__(self, other) -> MapExtent:
         return super().__add__(other)
+
+    def length(self) -> ManhattanDistance:
+        return ManhattanDistance.between(self.top_left, self.bottom_right)
 
 
 # Hashable

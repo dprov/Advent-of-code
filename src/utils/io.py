@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from typing import List, Type, Union
 
@@ -32,6 +33,12 @@ class ParserClass:
         return None
 
     @staticmethod
+    def line_regex() -> str:
+        # regex applied to each line. Only catch groups are kept. None = no regex matching
+        # e.g. regex = "(\w{3})\w{3}(\w{3})", string = "ABCDEFGHI" --> ["ABC", "GHI"]
+        return None
+
+    @staticmethod
     def line_group_size() -> int:
         # Aggregate lines in groups of size line_group_size()
         return 1
@@ -51,6 +58,9 @@ def parse_file_as_type(path: str, parser_class: ParserClass) -> List:
 
         if parser_class.line_split() is not None:
             data = [line.split(parser_class.line_split()) for line in data]
+
+        if parser_class.line_regex() is not None:
+            data = [re.match(parser_class.line_regex(), line).groups() for line in data]
 
         group_size = parser_class.line_group_size()
         if group_size > 1:

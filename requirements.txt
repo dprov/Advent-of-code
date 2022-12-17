@@ -3,5 +3,8 @@ Dijkstar==2.6.0
 interval==1.0.0
 mpmath==1.2.1
 numpy==1.23.5
+portion==2.3.0
 six==1.16.0
+sortedcontainers==2.4.0
 sympy==1.11.1
+tribool==0.7.3
