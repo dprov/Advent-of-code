@@ -36,7 +36,7 @@ def solve_part_1(topo_map, start_pos, end_pos):
         start_pos,
         end_pos,
         # Change to A*. For size of map, it's longer...
-        heuristic_func=lambda n1, n2, e1, e2: abs(n2.x - n1.x) + abs(n2.y - n1.y),
+        # heuristic_func=lambda n1, n2, e1, e2: abs(n2.x - n1.x) + abs(n2.y - n1.y),
     )
     print(path.total_cost)
     return path.total_cost

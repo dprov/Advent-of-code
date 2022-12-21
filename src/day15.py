@@ -82,7 +82,8 @@ def solve_part_1(sensor_readings: SensorReadings, row: int):
 
 PART_2_MAX_COORD = 4000000
 
-
+# Pool.map only works with pickleable functions. AFAIK, it only works with "top-level" functions, so
+# I used global parameters /variables. I don't care enough to make it cleaner for now.
 def check_row(row):
     x_interval = P.closed(0, PART_2_MAX_COORD)
     covered_interval = sensor_readings.row_coverage(row)
@@ -97,7 +98,7 @@ def check_row(row):
 
 
 @utils.timing.timing
-def solve_part_2_v2(max_coord: int) -> int:
+def solve_part_2(max_coord: int) -> int:
     with multiprocessing.Pool(8) as pool:
         for result in pool.map(check_row, range(max_coord + 1)):
             if result is not None:
@@ -114,4 +115,4 @@ if __name__ == "__main__":
     print(solve_part_1(sensor_readings, 2000000))
 
     print("Part II")
-    print(solve_part_2_v2(sensor_readings, PART_2_MAX_COORD))
+    print(solve_part_2(sensor_readings))
