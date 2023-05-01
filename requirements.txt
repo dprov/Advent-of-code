@@ -1,13 +1,17 @@
 anytree==2.8.0
 Dijkstar==2.6.0
+exceptiongroup==1.1.1
 imageio==2.23.0
+iniconfig==2.0.0
 interval==1.0.0
 mpmath==1.2.1
 networkx==2.8.8
 numpy==1.23.5
 packaging==22.0
 Pillow==9.3.0
+pluggy==1.0.0
 portion==2.3.0
+pytest==7.3.1
 PyWavelets==1.4.1
 scikit-image==0.19.3
 scipy==1.9.3
@@ -15,4 +19,5 @@ six==1.16.0
 sortedcontainers==2.4.0
 sympy==1.11.1
 tifffile==2022.10.10
+tomli==2.0.1
 tribool==0.7.3

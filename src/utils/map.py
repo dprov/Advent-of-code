@@ -77,10 +77,10 @@ class ManhattanDistance:
 # Hashable
 @dataclass(frozen=True, eq=True)
 class MapExtent:
-    __positions: List[MapPosition] = field(default_factory=list)
+    _positions: List[MapPosition] = field(default_factory=list)
 
     def __post_init__(self):
-        positions = [p for p in self.__positions if p is not None]
+        positions = [p for p in self._positions if p is not None]
         if positions:
             sorted_x = sorted([p.x for p in positions])
             sorted_y = sorted([p.y for p in positions])
