@@ -11,6 +11,9 @@ import skimage.segmentation
 import utils
 
 
+######################################
+# Geometry utils
+######################################
 class VoxelFace(Enum):
     X_POS = 1
     X_NEG = 1 << 1
@@ -76,6 +79,9 @@ class Voxel:
         return tuple([self + face for face in VoxelFace.all_single_faces()])
 
 
+######################################
+# Lava behavior
+######################################
 @dataclass
 class LavaDroplet:
     lava_cubes: List[Voxel]
@@ -121,28 +127,28 @@ class LavaDroplet:
         return np.unpackbits(np.bitwise_and(self.__array, VoxelFace.ALL.value)).sum()
 
 
-# Parsing
-class VoxelParser(utils.io.ParserClass):
-    @staticmethod
-    def line_split() -> str:
-        return ","
-
-    def parse(self):
-        if len(self.data) != 3:
-            raise ValueError("Invalid lava cube position")
-        return Voxel(x=int(self.data[0]), y=int(self.data[1]), z=int(self.data[2]))
+######################################
+# Parsing helpers
+######################################
+def parse_data_as_voxel(data: utils.io.InputData) -> Voxel:
+    if len(data) != 3:
+        raise ValueError("Invalid lava cube position")
+    return Voxel(x=int(data[0]), y=int(data[1]), z=int(data[2]))
 
 
 @utils.timing.timing
-def parse_input(path: str) -> LavaDroplet:
-    lava_cubes = utils.io.parse_file_as_type(path, VoxelParser)
+def setup_droplet(input_file: str) -> LavaDroplet:
+    parser = utils.io.FileParser(data_parser=parse_data_as_voxel, line_sep=",")
+    lava_cubes = parser.parse_file(input_file)
     return LavaDroplet(lava_cubes)
 
 
+######################################
 # Solvers
+######################################
 @utils.timing.timing
 def solve_part_1(input_file: str):
-    droplet = parse_input(input_file)
+    droplet = setup_droplet(input_file)
     return droplet.total_surface_area()
 
 
@@ -156,7 +162,7 @@ def clear_border_adjacent(matrix):
 
 @utils.timing.timing
 def solve_part_2(input_file: str):
-    droplet = parse_input(input_file)
+    droplet = setup_droplet(input_file)
     non_filled = np.logical_not(droplet.contains_lava_array())
     to_fill = clear_border_adjacent(non_filled)
 

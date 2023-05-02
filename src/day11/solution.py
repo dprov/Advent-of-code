@@ -10,7 +10,9 @@ import sympy
 import utils
 
 
+###################################################
 # Utilities related to prime number factorization
+###################################################
 def get_prime_factors(x, limit):
     return set(sympy.primefactors(x, limit=limit))
 
@@ -27,7 +29,9 @@ def find_primes_up_to(n):
     return out
 
 
+###################################################
 # Classes for items in monkey game
+###################################################
 class FactorizedInt:
     # Track remainder of division by primes up to max_divisor
     max_divisor: int = None
@@ -84,7 +88,9 @@ class ThrownItem:
     recipient: int
 
 
+###################################################
 # Classes for defining callbacks for all the monkey/game steps
+###################################################
 @dataclass
 class Callback:
     def _callback(self):
@@ -149,7 +155,9 @@ class WhenBoredCallback(Callback):
             return item
 
 
+###################################################
 # Class for monkey behavior during game
+###################################################
 class Monkey:
     def __init__(
         self,
@@ -196,7 +204,9 @@ class Monkey:
         return self.__n_inspected_items
 
 
+###################################################
 # Class for running game
+###################################################
 @dataclass
 class MonkeyGame:
     monkeys: List[Monkey]
@@ -231,83 +241,79 @@ class MonkeyGame:
             self.monkeys[thrown_item.recipient].catch_item(thrown_item.item)
 
 
-# Helper for parsing
-@dataclass
-class MonkeyParser(utils.io.ParserClass):
-    @staticmethod
-    def line_group_size() -> int:
-        return 6
-
-    def parse(self) -> Monkey:
-        if len(self.data) != self.line_group_size():
-            raise ValueError()
-
-        # Line 0: Monkey declaration
-        monkey_id = self.__parse_monkey_id(self.data[0])
-
-        # Line 1: Starting items
-        starting_values = self.__parse_starting_values(self.data[1])
-
-        # Line 2: Operation
-        operation = self.__parse_operation(self.data[2])
-
-        # Lines 3-5: Test
-        test = self.__parse_test(
-            divisor_str=self.data[3], if_true_str=self.data[4], if_false_str=self.data[5]
-        )
-
-        # Line 6 should be empty
-
-        return Monkey(id=monkey_id, starting_values=starting_values, operation=operation, test=test)
-
-    def __parse_monkey_id(self, monkey_id_str) -> int:
-        monkey_id_str = self.__check_line(monkey_id_str, "Monkey ")
-        return int(monkey_id_str[0])
-
-    def __parse_starting_values(self, starting_values_str) -> List[int]:
-        starting_values_str = self.__check_line(self.data[1], "  Starting items: ")
-        return [int(value) for value in starting_values_str.split(", ")]
-
-    def __parse_operation(self, operation_str: str) -> OperationCallback:
-        operation_str = self.__check_line(operation_str, "  Operation: new = ")
-        # Assume format is old op val, where op is one of OperationCallback.Operator and val is int or old
-        remaining_str = self.__check_line(operation_str, "old ")
-        if remaining_str == "* old":
-            operator = OperationCallback.Operator.POW
-            arg = 2
-        else:
-            operator = OperationCallback.Operator(remaining_str[0])
-
-            # Skip operator and space
-            remaining_str = remaining_str[2:]
-            arg = int(remaining_str)
-        return OperationCallback(operator=operator, arg=arg)
-
-    def __parse_test(
-        self, divisor_str: str, if_true_str: str, if_false_str: str
-    ) -> TestDivisibilityCallback:
-        divisor = int(self.__check_line(divisor_str, "  Test: divisible by "))
-        monkey_if_true = int(self.__check_line(if_true_str, "    If true: throw to monkey "))
-        monkey_if_false = int(self.__check_line(if_false_str, "    If false: throw to monkey "))
-        return TestDivisibilityCallback(
-            divisor=divisor, monkey_true=monkey_if_true, monkey_false=monkey_if_false
-        )
-
-    def __check_line(self, line: str, line_start: str) -> str:
-        if line[: len(line_start)] != line_start:
-            raise ValueError(f"Expected line '{line}' to start with '{line_start}'")
-        return line[len(line_start) :]
+###################################################
+# Parsing helpers
+###################################################
+def _check_input_line(line: str, line_start: str) -> str:
+    if line[: len(line_start)] != line_start:
+        raise ValueError(f"Expected line '{line}' to start with '{line_start}'")
+    return line[len(line_start) :]
 
 
+def _parse_operation(operation_str: str) -> OperationCallback:
+    operation_str = _check_input_line(operation_str, "  Operation: new = ")
+    # Assume format is old op val, where op is one of OperationCallback.Operator and val is int or old
+    remaining_str = _check_input_line(operation_str, "old ")
+    if remaining_str == "* old":
+        operator = OperationCallback.Operator.POW
+        arg = 2
+    else:
+        operator = OperationCallback.Operator(remaining_str[0])
+
+        # Skip operator and space
+        remaining_str = remaining_str[2:]
+        arg = int(remaining_str)
+    return OperationCallback(operator=operator, arg=arg)
+
+
+def _parse_test(divisor_str: str, if_true_str: str, if_false_str: str) -> TestDivisibilityCallback:
+    divisor = int(_check_input_line(divisor_str, "  Test: divisible by "))
+    monkey_if_true = int(_check_input_line(if_true_str, "    If true: throw to monkey "))
+    monkey_if_false = int(_check_input_line(if_false_str, "    If false: throw to monkey "))
+    return TestDivisibilityCallback(
+        divisor=divisor, monkey_true=monkey_if_true, monkey_false=monkey_if_false
+    )
+
+
+def parse_data_as_monkey(data: utils.io.InputData) -> Monkey:
+    if len(data) != 6:
+        raise ValueError("Inconsistent input")
+
+    # Line 0: Monkey declaration
+    monkey_id_str = _check_input_line(data[0], "Monkey ")
+    monkey_id = int(monkey_id_str[0])
+
+    # Line 1: Starting items
+    starting_values_str = _check_input_line(data[1], "  Starting items: ")
+    starting_values = [int(value) for value in starting_values_str.split(", ")]
+
+    # Line 2: Operation
+    operation = _parse_operation(data[2])
+
+    # Lines 3-5: Test
+    test = _parse_test(divisor_str=data[3], if_true_str=data[4], if_false_str=data[5])
+
+    # Line 6 should be empty
+
+    return Monkey(id=monkey_id, starting_values=starting_values, operation=operation, test=test)
+
+
+def setup_game(input_file: str) -> MonkeyGame:
+    parser = utils.io.FileParser(data_parser=parse_data_as_monkey, line_group_size=6)
+    monkeys: List[Monkey] = parser.parse_file(input_file)
+    return MonkeyGame(monkeys=monkeys)
+
+
+###################################################
+# Solvers
+###################################################
 def solve_part_1(input_file: str) -> int:
-    monkeys: List[Monkey] = utils.io.parse_file_as_type(input_file, MonkeyParser)
-    game = MonkeyGame(monkeys=monkeys)
+    game = setup_game(input_file)
     return game.play(n_rounds=20, when_bored=WhenBoredCallback(relief_factor=3))
 
 
 def solve_part_2(input_file: str) -> int:
-    monkeys: List[Monkey] = utils.io.parse_file_as_type(input_file, MonkeyParser)
-    game = MonkeyGame(monkeys=monkeys)
+    game = setup_game(input_file)
     return game.play(n_rounds=10000, when_bored=WhenBoredCallback(relief_factor=1))
 
 

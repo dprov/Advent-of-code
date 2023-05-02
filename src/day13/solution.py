@@ -66,30 +66,28 @@ class PacketPair:
         return self.left < self.right
 
 
+####################################
 # Parsing utils
-class PacketPairParser(utils.io.ParserClass):
-    @staticmethod
-    def line_group_size() -> int:
-        return 2
-
-    def parse(self) -> PacketPair:
-        if len(self.data) != 2:
-            raise ValueError("Inconsistent input")
-        # Each input line is basically __repr__(value)
-        packets = [Packet(ast.literal_eval(line)) for line in self.data]
-        return PacketPair(left=packets[0], right=packets[1])
+####################################
+def parse_data_as_packet(data: utils.io.InputData) -> Packet:
+    return Packet(ast.literal_eval(data))
 
 
-class PacketParser(utils.io.ParserClass):
-    def parse(self) -> Packet:
-        # Each input line is basically __repr__(value)
-        return Packet(ast.literal_eval(self.data))
+def parse_data_as_packet_pair(data: utils.io.InputData) -> Packet:
+    if len(data) != 2:
+        raise ValueError("Inconsistent input")
+    # Each input line is basically __repr__(value)
+    packets = [Packet(ast.literal_eval(line)) for line in data]
+    return PacketPair(left=packets[0], right=packets[1])
 
 
+####################################
 # Solvers
+####################################
 @utils.timing.timing
 def solve_part_1(path: str) -> int:
-    pairs: List[PacketPair] = utils.io.parse_file_as_type(path, PacketPairParser)
+    parser = utils.io.FileParser(data_parser=parse_data_as_packet_pair, line_group_size=2)
+    pairs: List[PacketPair] = parser.parse_file(path)
     are_ordered = [pair.is_ordered() for pair in pairs]
 
     return sum([ind + 1 for ind, is_ordered in enumerate(are_ordered) if is_ordered])
@@ -97,7 +95,8 @@ def solve_part_1(path: str) -> int:
 
 @utils.timing.timing
 def solve_part_2(path: str) -> int:
-    packets: List[Packet] = utils.io.parse_file_as_type(path, PacketParser)
+    parser = utils.io.FileParser(data_parser=parse_data_as_packet)
+    packets: List[Packet] = parser.parse_file(path)
 
     divider_packets = [Packet([[2]]), Packet([[6]])]
 

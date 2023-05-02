@@ -2,7 +2,7 @@ from typing import List, Union
 
 import utils.io
 
-StrContainer = List[Union[str, List[str]]]
+InputDataList = List[Union[str, List[str]]]
 
 
 def parse_input(input_file: str) -> List[int]:

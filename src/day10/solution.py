@@ -7,7 +7,9 @@ from typing import Callable, List
 import utils.io
 
 
+######################################
 # Operation definitions
+######################################
 class OpType(Enum):
     NOOP = "noop"
     ADDX = "addx"
@@ -50,21 +52,9 @@ class AddxOperation(Operation):
             self.callback(self.value)
 
 
-# Helper for parsing
-@dataclass
-class OperationParser(utils.io.ParserClass):
-    def parse(self):
-        op_type = OpType(self.data[0])
-        if op_type == OpType.NOOP:
-            return NoopOperation()
-        elif op_type == OpType.ADDX:
-            return AddxOperation(int(self.data[1]))
-
-    @staticmethod
-    def line_split() -> str:
-        return " "
-
-
+######################################
+# Display representation
+######################################
 class CRT:
     set_value: str = "#"
     unset_value: str = "."
@@ -104,6 +94,9 @@ class CRT:
         return image
 
 
+######################################
+# Processor representation
+######################################
 class Processor:
     __X: int = 1
     __signal_strengths: List[int] = field(default_factory=list)
@@ -139,19 +132,37 @@ def get_signal_strengths(processor: Processor, cycle_inds: List[int]) -> int:
     return sum([processor.signal_strength(c) for c in cycle_inds])
 
 
-def solve_part_1(input_file: str) -> int:
-    operations = utils.io.parse_file_as_type(input_file, OperationParser)
+######################################
+# Helper for parsing
+######################################
+def parse_data_as_operation(data: utils.io.InputData):
+    op_type = OpType(data[0])
+    if op_type == OpType.NOOP:
+        return NoopOperation()
+    elif op_type == OpType.ADDX:
+        return AddxOperation(int(data[1]))
+
+
+######################################
+# Solvers
+######################################
+def setup_processor(input_file: str) -> Processor:
+    parser = utils.io.FileParser(data_parser=parse_data_as_operation, line_sep=" ")
+    operations = parser.parse_file(input_file)
 
     processor = Processor()
     processor.apply_operations(operations)
+    return processor
+
+
+def solve_part_1(input_file: str) -> int:
+    processor = setup_processor(input_file)
     return get_signal_strengths(processor=processor, cycle_inds=range(20, processor.cycle(), 40))
 
 
 def solve_part_2(input_file: str) -> int:
-    operations = utils.io.parse_file_as_type(input_file, OperationParser)
+    processor = setup_processor(input_file)
 
-    processor = Processor()
-    processor.apply_operations(operations)
     return processor.get_display_image()
 
 
@@ -160,5 +171,5 @@ if __name__ == "__main__":
     print(solve_part_1("input/day10.txt"))
 
     print("Part II")
-    a = solve_part_2("input/day10.txt")
-    print(*solve_part_2("input/day10.txt"), sep="\n")
+    part_2_solution = solve_part_2("input/day10.txt")
+    print(*part_2_solution, sep="\n")

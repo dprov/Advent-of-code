@@ -10,15 +10,9 @@ import numpy as np
 import utils
 from utils.map import MapExtent, MapLine, MapPosition, MapStructure
 
-
-@utils.timing.timing
-def parse_input(path: str) -> Tuple[np.ndarray, MapPosition, MapPosition]:
-    topo_map = utils.io.read_file_as_array(path, dtype="<U1")
-
-    start_pos, end_pos = extract_start_end_pos(topo_map)
-
-    topo_map = utils.conversions.alpha_array_to_int(topo_map)
-    return topo_map, start_pos, end_pos
+######################################
+# Graph setup and solving
+######################################
 
 
 @utils.timing.timing
@@ -81,7 +75,9 @@ def find_shortest_path_length_from_lowest_elevation(topo_map, end_pos):
     return shortest_path_length
 
 
-# Parsing utils
+######################################
+# Parsing helpers
+######################################
 def extract_start_end_pos(
     topo_map: np.ndarray, start_marker="S", end_marker="E"
 ) -> Tuple[MapPosition, MapPosition]:
@@ -100,13 +96,26 @@ def extract_start_end_pos(
     return (start_pos, end_pos)
 
 
+@utils.timing.timing
+def parse_data_as_map_data(path: str) -> Tuple[np.ndarray, MapPosition, MapPosition]:
+    topo_map = utils.io.read_file_as_array(path, dtype="<U1")
+
+    start_pos, end_pos = extract_start_end_pos(topo_map)
+
+    topo_map = utils.conversions.alpha_array_to_int(topo_map)
+    return topo_map, start_pos, end_pos
+
+
+######################################
+# Solvers
+######################################
 def solve_part_1(input_file: str) -> int:
-    topo_map, start_pos, end_pos = parse_input(input_file)
+    topo_map, start_pos, end_pos = parse_data_as_map_data(input_file)
     return find_shortest_path_length(topo_map, start_pos, end_pos)
 
 
 def solve_part_2(input_file: str) -> int:
-    topo_map, __, end_pos = parse_input(input_file)
+    topo_map, __, end_pos = parse_data_as_map_data(input_file)
     return find_shortest_path_length_from_lowest_elevation(topo_map, end_pos)
 
 

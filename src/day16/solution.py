@@ -10,6 +10,9 @@ import dijkstar.algorithm
 import utils
 
 
+####################################
+# Valve behavior
+####################################
 # Hashable
 @dataclass(frozen=True, eq=True)
 class Valve:
@@ -26,27 +29,31 @@ class Valve:
         return self._hash
 
 
-class ValveParser(utils.io.ParserClass):
-    @staticmethod
-    def line_regex() -> str:
-        return "Valve (\w{2}) [\w ]+=(\d+); [\w ]+ valves? ([\w, ]+)"
-
-    def parse(self) -> Valve:
-        if len(self.data) != 3:
-            raise ValueError("Invalid valve string")
-
-        name = self.data[0]
-        flow_rate = int(self.data[1])
-        tunnels = tuple(self.data[2].split(", "))
-
-        return Valve(name=name, flow_rate=flow_rate, tunnels=tunnels)
-
-
 ValveTuple = Tuple[Valve, ...]
 ValveTupleDict = Dict[ValveTuple, int]
 ValveTupleTupleDict = Dict[Tuple[ValveTuple, ...], int]
 
 
+####################################
+# Parsing helpers
+####################################
+VALVE_REGEX = "Valve (\w{2}) [\w ]+=(\d+); [\w ]+ valves? ([\w, ]+)"
+
+
+def parse_data_as_valve(data: utils.io.InputData) -> Valve:
+    if len(data) != 3:
+        raise ValueError("Invalid valve string")
+
+    name = data[0]
+    flow_rate = int(data[1])
+    tunnels = tuple(data[2].split(", "))
+
+    return Valve(name=name, flow_rate=flow_rate, tunnels=tunnels)
+
+
+####################################
+# Solvers
+####################################
 # Create tuple of sorted valve names for using as key in dictionary
 def sort_valve_names(valves: List[Valve]) -> Tuple[Valve, ...]:
     return tuple(sorted([v.name for v in valves]))
@@ -85,6 +92,19 @@ def find_travel_times(valves: List[Valve]) -> ValveTupleDict:
     return travel_times
 
 
+def initialize_problem(
+    input_file: str,
+) -> Tuple[ValveTupleDict, ValveTuple, List[Valve]]:
+    parser = utils.io.FileParser(data_parser=parse_data_as_valve, line_regex=VALVE_REGEX)
+    valves = parser.parse_file(input_file)
+    travel_times = find_travel_times(valves)
+    starting_valve_name = "AA"
+
+    path_start = tuple([v for v in valves if v.name == starting_valve_name])
+    remaining_valves = [v for v in valves if v.flow_rate > 0 and v.name != starting_valve_name]
+    return path_start, remaining_valves, travel_times
+
+
 def explore_DFS(
     path: Tuple[Valve, ...],
     remaining_valves: List[Valve],
@@ -120,12 +140,7 @@ def explore_DFS(
 
 @utils.timing.timing
 def solve_part_1(input_file: str) -> int:
-    valves = utils.io.parse_file_as_type(input_file, ValveParser)
-    travel_times = find_travel_times(valves)
-    starting_valve_name = "AA"
-
-    path_start = tuple([v for v in valves if v.name == starting_valve_name])
-    remaining_valves = [v for v in valves if v.flow_rate > 0 and v.name != starting_valve_name]
+    path_start, remaining_valves, travel_times = initialize_problem(input_file)
 
     path_flows = {}
     explore_DFS(
@@ -142,12 +157,7 @@ def solve_part_1(input_file: str) -> int:
 
 @utils.timing.timing
 def solve_part_2(input_file: str) -> int:
-    valves = utils.io.parse_file_as_type(input_file, ValveParser)
-    travel_times = find_travel_times(valves)
-    starting_valve_name = "AA"
-
-    path_start = tuple(v for v in valves if v.name == starting_valve_name)
-    remaining_valves = [v for v in valves if v.flow_rate > 0 and v.name != starting_valve_name]
+    path_start, remaining_valves, travel_times = initialize_problem(input_file)
 
     path_flows = {}
     explore_DFS(

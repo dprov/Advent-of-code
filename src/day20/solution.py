@@ -86,6 +86,9 @@ class Mixer:
         return [self.__values[ind].value for ind in self.__value_indices]
 
 
+######################################
+# Solvers
+######################################
 @utils.timing.timing
 def solve_part_1(input_file: str):
     numbers = utils.io.read_file_lines(input_file, parse_as_type=int)

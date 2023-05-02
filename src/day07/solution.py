@@ -36,9 +36,6 @@ def get_root_node(node: FilesystemNode) -> FilesystemNode:
 
 def print_tree(root: FilesystemNode):
     for pre, fill, node in anytree.RenderTree(root):
-        # if node.is_dir:
-        #     print(f"{pre}{node.name}")
-        # else:
         print(f"{pre}{node.name}  {node.file_size}")
 
 

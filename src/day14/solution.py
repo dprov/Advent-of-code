@@ -104,30 +104,35 @@ class FillingCaveMap:
         return self.__map.copy()
 
 
-class MapStructureParser(utils.io.ParserClass):
-    @staticmethod
-    def line_split() -> str:
-        # input for str.split() applied to each line. None = no split
-        return " -> "
-
-    def parse(self) -> MapStructure:
-        if len(self.data) < 2:
-            raise ValueError("Invalid structure string")
-
-        corners = [self.__parse_point(corner_str) for corner_str in self.data]
-        walls = [MapLine([c1, c2]) for c1, c2 in zip(corners[:-1], corners[1:])]
-        return MapStructure(lines=walls)
-
-    def __parse_point(self, corner_str: str) -> MapPosition:
+####################################
+# Parsing helpers
+####################################
+def parse_data_as_MapStructure(data: utils.io.InputData) -> MapStructure:
+    def _parse_point(corner_str: str) -> MapPosition:
         coords = [int(c) for c in corner_str.split(",")]
         if len(coords) != 2:
             raise ValueError("Invalid corner string")
         return MapPosition(x=coords[0], y=coords[1])
 
+    if len(data) < 2:
+        raise ValueError("Invalid structure string")
 
+    corners = [_parse_point(corner_str) for corner_str in data]
+    walls = [MapLine([c1, c2]) for c1, c2 in zip(corners[:-1], corners[1:])]
+    return MapStructure(lines=walls)
+
+
+def setup_map_structures(input_file: str) -> List[MapStructure]:
+    parser = utils.io.FileParser(data_parser=parse_data_as_MapStructure, line_sep=" -> ")
+    return parser.parse_file(input_file)
+
+
+####################################
+# Solvers
+####################################
 @utils.timing.timing
 def solve_part_1(input_file: str):
-    map_structures = utils.io.parse_file_as_type(input_file, MapStructureParser)
+    map_structures = setup_map_structures(input_file)
     cave_map = FillingCaveMap(map_structures)
     n_units = cave_map.fill_with_sand()
 
@@ -139,7 +144,7 @@ def solve_part_1(input_file: str):
 
 @utils.timing.timing
 def solve_part_2(input_file: str):
-    map_structures = utils.io.parse_file_as_type(input_file, MapStructureParser)
+    map_structures = setup_map_structures(input_file)
     cave_map = FillingCaveMap(map_structures, floor_depth_below_scan=2)
     n_units = cave_map.fill_with_sand()
 

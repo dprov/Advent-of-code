@@ -10,6 +10,9 @@ import utils
 from utils.map import ManhattanDistance, MapPosition
 
 
+####################################
+# Sensors
+####################################
 @dataclass
 class SensorReading:
     sensor: utils.map.MapPosition
@@ -37,34 +40,36 @@ class SensorReadings:
         return interval
 
 
-class SensorReadingParser(utils.io.ParserClass):
-    @staticmethod
-    def line_regex() -> str:
-        number = "[-\d]"
-        return f"[\w ]+ x=({number}+), y=({number}+): [\w ]+ x=({number}+), y=({number}+)"
-
-    def parse(self) -> SensorReading:
-        if len(self.data) < 4:
-            raise ValueError("Invalid sensor reading string")
-
-        sensor_pos = MapPosition(int(self.data[0]), int(self.data[1]))
-        beacon_pos = MapPosition(int(self.data[2]), int(self.data[3]))
-        return SensorReading(sensor=sensor_pos, beacon=beacon_pos)
+####################################
+# Parsing helpers
+####################################
+number_regex = "[-\d]"
+sensor_reading_regex = (
+    f"[\w ]+ x=({number_regex}+), y=({number_regex}+): [\w ]+ x=({number_regex}+),"
+    f" y=({number_regex}+)"
+)
 
 
-def get_sensor_coverage(sensor_readings: SensorReadings, row: int) -> P.Interval:
-    no_beacon_interval = sensor_readings.row_coverage(row)
+def parse_data_as_SensorReading(data: utils.io.InputData) -> SensorReading:
+    if len(data) < 4:
+        raise ValueError("Invalid sensor reading string")
 
-    # Remove beacons from row coverage
-    beacons_in_coverage = [
-        reading.beacon for reading in sensor_readings.readings if reading.beacon.y == row
-    ]
-    for beacon in beacons_in_coverage:
-        no_beacon_interval &= ~P.open(beacon.x - 1, beacon.x + 1)
-
-    return no_beacon_interval
+    sensor_pos = MapPosition(int(data[0]), int(data[1]))
+    beacon_pos = MapPosition(int(data[2]), int(data[3]))
+    return SensorReading(sensor=sensor_pos, beacon=beacon_pos)
 
 
+def setup_sensor_readings(input_file: str) -> SensorReadings:
+    parser = utils.io.FileParser(
+        data_parser=parse_data_as_SensorReading, line_regex=sensor_reading_regex
+    )
+    sensor_reading_list = parser.parse_file(input_file)
+    return SensorReadings(sensor_reading_list)
+
+
+####################################
+# Solvers
+####################################
 def count_no_beacon_positions(sensor_readings: SensorReadings, row: int) -> int:
     no_beacon_interval = sensor_readings.row_coverage(row)
 
@@ -81,8 +86,7 @@ def count_no_beacon_positions(sensor_readings: SensorReadings, row: int) -> int:
 
 @utils.timing.timing
 def solve_part_1(input_file: str, row: int = 2000000) -> int:
-    sensor_readings = utils.io.parse_file_as_type(input_file, SensorReadingParser)
-    sensor_readings = SensorReadings(sensor_readings)
+    sensor_readings = setup_sensor_readings(input_file)
     return count_no_beacon_positions(sensor_readings, row)
 
 
@@ -111,8 +115,7 @@ def solve_part_2(input_file: str, grid_size: int = 4000000) -> int:
     global sensor_readings
     global max_coord_val
     max_coord_val = grid_size
-    sensor_readings = utils.io.parse_file_as_type(input_file, SensorReadingParser)
-    sensor_readings = SensorReadings(sensor_readings)
+    sensor_readings = setup_sensor_readings(input_file)
 
     with multiprocessing.Pool(8) as pool:
         for result in pool.map(check_row, range(max_coord_val + 1)):

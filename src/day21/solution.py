@@ -8,6 +8,9 @@ from typing import List
 import utils
 
 
+######################################
+# Operations definition
+######################################
 class BinaryOperator(Enum):
     ADD = "+"
     SUB = "-"
@@ -47,7 +50,9 @@ class BinaryOperator(Enum):
             raise NotImplementedError()
 
 
-# Classes for each type of monkey
+######################################
+# Various monkey behaviors
+######################################
 class YellingMonkey:
     @dataclass
     class MonkeyInfo:
@@ -169,25 +174,31 @@ class Human(YellingMonkey):
                     break
 
 
-class MonkeyParser(utils.io.ParserClass):
-    @staticmethod
-    def line_split() -> str:
-        return ": "
-
-    def parse(self):
-        name = self.data[0]
-        m = re.match("(\w{4}) ([+\-*/]) (\w{4})", self.data[1])
-        if m is not None:
-            return MathYellingMonkey(
-                name=name,
-                operator=BinaryOperator(m.group(2)),
-                monkey_1_name=m.group(1),
-                monkey_2_name=m.group(3),
-            )
-        else:
-            return YellingMonkey(name=name, number=int(self.data[1]))
+######################################
+# Parsing utils
+######################################
+def parse_data_as_monkey(data: utils.io.InputData) -> YellingMonkey:
+    name = data[0]
+    m = re.match("(\w{4}) ([+\-*/]) (\w{4})", data[1])
+    if m is not None:
+        return MathYellingMonkey(
+            name=name,
+            operator=BinaryOperator(m.group(2)),
+            monkey_1_name=m.group(1),
+            monkey_2_name=m.group(3),
+        )
+    else:
+        return YellingMonkey(name=name, number=int(data[1]))
 
 
+def setup_monkeys(input_file: str) -> List[YellingMonkey]:
+    parser = utils.io.FileParser(data_parser=parse_data_as_monkey, line_sep=": ")
+    return parser.parse_file(input_file)
+
+
+######################################
+# Solvers
+######################################
 def shout_it_all_out(monkeys: List[YellingMonkey], reverse_order=False) -> YellingMonkey:
     root_monkey = [monkey for monkey in monkeys if monkey.name() == "root"][0]
 
@@ -207,14 +218,14 @@ def shout_it_all_out(monkeys: List[YellingMonkey], reverse_order=False) -> Yelli
 
 @utils.timing.timing
 def solve_part_1(input_file: str) -> int:
-    monkeys: List[YellingMonkey] = utils.io.parse_file_as_type(input_file, MonkeyParser)
+    monkeys = setup_monkeys(input_file)
     root_monkey = shout_it_all_out(monkeys)
     return root_monkey.shout().value
 
 
 @utils.timing.timing
 def solve_part_2(input_file: str) -> int:
-    monkeys: List[YellingMonkey] = utils.io.parse_file_as_type(input_file, MonkeyParser)
+    monkeys = setup_monkeys(input_file)
     # Modify root monkey rules
     root_ind = [ind for ind, monkey in enumerate(monkeys) if monkey.name() == "root"][0]
     monkeys[root_ind] = RootMonkey(
