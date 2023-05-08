@@ -45,6 +45,7 @@ class MapPosition:
         return neighbors
 
 
+# TODO: Cleanup: Turned out into a pretty useless class.
 @dataclass(frozen=True, eq=True, order=True)
 class ManhattanDistance:
     distance: int = 0
